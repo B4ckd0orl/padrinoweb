@@ -143,7 +143,7 @@ $recientes_top = array_slice(
 
 $titulo_pagina = 'Padrino Store — Catálogo PS5 y PS4';
 $urlBase  = url_base();
-$urlSelf = $urlBase . '/index.php' . ($f['q'] !== '' || $f['plat'] !== '' || $f['gen']
+$urlSelf = $urlBase . (defined('ESTATICO') ? '/' : '/index.php') . ($f['q'] !== '' || $f['plat'] !== '' || $f['gen']
     ? '?' . http_build_query(array_filter(['q' => $f['q'], 'plat' => $f['plat'], 'gen' => $f['gen']]))
     : '');
 $ogImg = $urlBase . '/asset.php?f=logo';
@@ -172,7 +172,7 @@ $ogImg = $urlBase . '/asset.php?f=logo';
 <header class="top">
   <a class="brand" href="index.php">
     <img src="asset.php?f=logo" alt="Padrino Store" width="30" height="30">
-    Padrino<i>&nbsp;Store</i>
+    <span class="brand-t">Padrino<i>&nbsp;Store</i></span>
   </a>
   <nav class="nav-links">
     <a class="lnk on" href="index.php">Catálogo</a>
@@ -182,7 +182,7 @@ $ogImg = $urlBase . '/asset.php?f=logo';
     <a class="lnk" href="#redes">Redes</a>
   </nav>
   <button class="filtros-btn" id="filtrosBtn" aria-label="Filtros" aria-controls="side" aria-expanded="false">
-    ☰ Filtros <span class="fbadge" id="filtrosBadge" <?= $nFiltros > 0 ? '' : 'hidden' ?>><?= $nFiltros ?></span>
+    ☰ <span class="flabel">Filtros</span> <span class="fbadge" id="filtrosBadge" <?= $nFiltros > 0 ? '' : 'hidden' ?>><?= $nFiltros ?></span>
   </button>
   <form class="search" role="search" action="index.php" method="get" id="searchForm">
     <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -369,7 +369,8 @@ $ogImg = $urlBase . '/asset.php?f=logo';
       </div>
 
       <?php if ($pags > 1): ?>
-      <!-- "Cargar más" (JS) — la paginación clásica de abajo es el fallback no-JS -->
+      <!-- "Cargar más" (JS) — la paginación clásica de abajo convive con ella
+           (en estático, app.js repinta sus enlaces con los filtros activos) -->
       <div class="more-wrap">
         <button type="button" class="more-btn" id="moreBtn"
                 data-pag="<?= $pag ?>" data-pags="<?= $pags ?>"
@@ -436,7 +437,7 @@ $ogImg = $urlBase . '/asset.php?f=logo';
 <div class="ovl" id="ovl" data-close-ovl>
   <div class="dlbox" role="dialog" aria-modal="true" aria-labelledby="dlt">
     <div class="dlhd">
-      <img id="dlcov" src="" alt="" width="64" height="85">
+      <img id="dlcov" src="<?= e(logo_src()) ?>" alt="" width="64" height="85">
       <div>
         <div class="t" id="dlt"></div>
         <div class="m" id="dlm"></div>

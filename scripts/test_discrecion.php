@@ -16,6 +16,8 @@ declare(strict_types=1);
      - que api/detalle.php NO sirve el campo `pass` (contraseña de RAR)
 
    Uso:  php scripts/test_discrecion.php
+         PADRINO_BASE=http://127.0.0.1:8000/padrinoweb PADRINO_TIPO=estatico \
+           php scripts/test_discrecion.php    # contra el build estático
    Sale con código 1 si hay fallas (sirve de check automatizado).
    ============================================================ */
 
@@ -30,7 +32,10 @@ require __DIR__ . '/../inc/seguridad.php';
 require __DIR__ . '/../inc/catalogo.php';
 require __DIR__ . '/../inc/descargas.php';
 
-const BASE = 'http://localhost/padrinoweb';
+/* URL base a testear (por defecto, la web local en XAMPP) */
+$BASE = rtrim((string)(getenv('PADRINO_BASE') ?: 'http://localhost/padrinoweb'), '/');
+/* 'estatico' → rutas del build (index.html, juego/ID/, datos/*.json) */
+$ESTATICO = (getenv('PADRINO_TIPO') ?: '') === 'estatico';
 
 $fallas = [];
 
@@ -52,6 +57,7 @@ function escanear_visible(string $origen, string $texto): void
 {
     global $fallas;
     if (trim($texto) === '') return;
+    $texto = sin_nombres_propios($texto); // nombres propios legítimos del catálogo
     foreach (MENCIONES_AJENAS as $p) {
         if (preg_match($p, $texto, $m, PREG_OFFSET_CAPTURE)) {
             $pos = (int)$m[0][1];
@@ -87,15 +93,21 @@ $lineas = [];
 $lineas[] = '============================================================';
 $lineas[] = ' TEST DE DISCRECION (texto visible) - Padrino Store Web';
 $lineas[] = ' ' . date('Y-m-d H:i:s') . '  ·  PHP ' . PHP_VERSION;
+$lineas[] = ' ' . $BASE . ($ESTATICO ? '  (estático)' : '  (web PHP)');
 $lineas[] = '============================================================';
 
 /* [1] HTML servido: solo el texto, sin atributos */
 $lineas[] = '';
 $lineas[] = '[1] TEXTO DE LAS PAGINAS';
-$rutas = ['/' => 'index', '/juego.php?id=CUSA30277' => 'ficha CUSA30277'];
-if ($extId) $rutas['/juego.php?id=' . $extId] = "ficha externa $extId";
+if ($ESTATICO) {
+    $rutas = ['/' => 'index', '/juego/CUSA30277/' => 'ficha CUSA30277'];
+    if ($extId) $rutas['/juego/' . $extId . '/'] = "ficha externa $extId";
+} else {
+    $rutas = ['/' => 'index', '/juego.php?id=CUSA30277' => 'ficha CUSA30277'];
+    if ($extId) $rutas['/juego.php?id=' . $extId] = "ficha externa $extId";
+}
 foreach ($rutas as $ruta => $nombre) {
-    $txt = http_txt(BASE . $ruta);
+    $txt = http_txt($BASE . $ruta);
     if ($txt === null) { $lineas[] = "    ! $nombre: sin respuesta"; $fallas[] = "$nombre :: HTTP sin respuesta"; continue; }
     $nAntes = count($fallas);
     escanear_visible($nombre, solo_texto($txt));
@@ -104,16 +116,21 @@ foreach ($rutas as $ruta => $nombre) {
 
 /* [2] JSON APIs: todo el texto salvo las URLs */
 $lineas[] = '';
-$lineas[] = '[2] CAMPOS DE TEXTO DE LAS APIs';
-$apis = ['/api/juegos.php' => 'juegos (página 1)'];
-foreach ($ids as $id) $apis['/api/detalle.php?id=' . $id] = "detalle $id";
+$lineas[] = $ESTATICO ? '[2] CAMPOS DE TEXTO DE LOS JSON ESTÁTICOS' : '[2] CAMPOS DE TEXTO DE LAS APIs';
+if ($ESTATICO) {
+    $apis = ['/datos/catalogo.json' => 'catalogo'];
+    foreach ($ids as $id) $apis['/datos/fuentes/' . $id . '.json'] = "fuentes $id";
+} else {
+    $apis = ['/api/juegos.php' => 'juegos (página 1)'];
+    foreach ($ids as $id) $apis['/api/detalle.php?id=' . $id] = "detalle $id";
+}
 foreach ($apis as $ruta => $nombre) {
-    $txt = http_txt(BASE . $ruta);
+    $txt = http_txt($BASE . $ruta);
     if ($txt === null) { $lineas[] = "    ! $nombre: sin respuesta"; $fallas[] = "$nombre :: HTTP sin respuesta"; continue; }
     $nAntes = count($fallas);
     escanear_visible($nombre, sin_urls($txt));
     // el campo pass (contraseña de los RAR) no se sirve jamás
-    if (str_contains($ruta, 'detalle') && preg_match('/"pass"\s*:/', $txt)) {
+    if ((str_contains($ruta, 'detalle') || str_contains($ruta, 'fuentes')) && preg_match('/"pass"\s*:/', $txt)) {
         $fallas[] = "$nombre :: sirve el campo \"pass\" (contraseña de RAR)";
     }
     $lineas[] = '    ' . str_pad($nombre, 26) . ' ' . number_format(strlen($txt)) . ' bytes · fallas: ' . (count($fallas) - $nAntes);

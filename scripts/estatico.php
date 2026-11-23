@@ -79,6 +79,10 @@ function post_estatico(string $h, bool $esIndex): string
             '<script src="assets/pre.js"></script><link rel="stylesheet"', $h);
     }
     $h = str_replace('index.php', 'index.html', $h);
+    /* URLs limpias: nunca se muestra "index.html" en la barra de dirección.
+       './' resuelve al directorio ('/padrinoweb/') tanto en la raíz como
+       bajo <base> de las fichas. */
+    $h = str_replace(['href="index.html', 'action="index.html'], ['href="./', 'action="./'], $h);
     $h = str_replace('asset.php?f=logo', 'assets/logo.png', $h);
     return $h;
 }
@@ -259,7 +263,7 @@ file_put_contents(DIST . '/404.html', <<<HTML
     <img src="{$base}/assets/logo.png" alt="" width="72" height="72" style="border-radius:16px">
     <h1 style="font-size:28px;margin:16px 0 6px">404 — Página no encontrada</h1>
     <p style="opacity:.75;margin:0 0 20px">Ese juego o dirección no existe en el catálogo.</p>
-    <a href="{$base}/index.html" style="display:inline-block;padding:12px 22px;border-radius:12px;background:#6c5ce7;color:#fff;text-decoration:none;font-weight:600">← Volver al catálogo</a>
+    <a href="{$base}/" style="display:inline-block;padding:12px 22px;border-radius:12px;background:#6c5ce7;color:#fff;text-decoration:none;font-weight:600">← Volver al catálogo</a>
   </div>
 </body>
 </html>
@@ -278,6 +282,9 @@ foreach ($it as $f) {
     $rel = str_replace('\\', '/', substr($f->getPathname(), strlen(DIST) + 1));
     if (strpos($c, 'asset.php') !== false || strpos($c, 'index.php') !== false) {
         $malos[] = $rel . ' → referencia PHP residual';
+    }
+    if ($ext === 'html' && preg_match('/(?:href|action)="index\.html/', $c)) {
+        $malos[] = $rel . ' → enlace con index.html visible en la URL';
     }
     if ($ext === 'json' && $rel !== 'datos/catalogo.json' && preg_match('/"(pass|ext)"\s*:/', $c)) {
         $malos[] = $rel . ' → contiene claves internas (pass/ext)';

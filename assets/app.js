@@ -326,19 +326,17 @@
   /* ============================================================
      CARGAR MÁS — paginación infinita (api/juegos.php; en modo
      estático, sobre datos/catalogo.json)
-     (la paginación clásica sigue visible si no hay JS)
+     (la paginación clásica de abajo convive: sus enlaces se
+     repintan con los filtros activos en modo estático)
      ============================================================ */
   (function () {
     var btn = $('#moreBtn');
     if (!btn) return;
-    var pagesNav = $('#pagesNav');
     var grid = $('#grid');
     if (!grid) return;
 
     var cargando = false;
 
-    /* sin JS ya no hace falta la paginación clásica: se oculta aquí */
-    if (pagesNav) pagesNav.hidden = true;
     var pag0 = parseInt(btn.getAttribute('data-pag'), 10) || 1;
     var pags0 = parseInt(btn.getAttribute('data-pags'), 10) || 1;
     if (pag0 >= pags0) btn.hidden = true;
@@ -1108,7 +1106,7 @@
       sp.className = 'fchip';
       sp.appendChild(document.createTextNode(c[0] + ' '));
       var a = document.createElement('a');
-      a.href = 'index.html' + (qsDe(n) ? '?' + qsDe(n) : '');
+      a.href = './' + (qsDe(n) ? '?' + qsDe(n) : '');
       a.textContent = '✕';
       sp.appendChild(a);
       if (ref) bar.insertBefore(sp, ref); else bar.appendChild(sp);
@@ -1131,7 +1129,7 @@
         n[k] = (k === 'mcmin') ? (parseInt(v, 10) || 0) : v;
       }
       n.pag = 1;
-      a.setAttribute('href', 'index.html' + (qsDe(n) ? '?' + qsDe(n) : ''));
+      a.setAttribute('href', './' + (qsDe(n) ? '?' + qsDe(n) : ''));
       var on = (k === 'gen') ? (f.gen.indexOf(v) > -1)
              : (k === 'zstd' || k === 'dir') ? !!f[k]
              : String(f[k]) === String(v);
@@ -1157,9 +1155,63 @@
       nr.innerHTML = '<img src="' + esc(LOGO) + '" alt="" width="64" height="64">' +
         '<h2>Sin resultados</h2>' +
         '<p>No encontramos juegos con esos filtros. Prueba a quitar alguno.</p>' +
-        '<a class="gbtn p" href="index.html">Ver todo el catálogo</a>';
+        '<a class="gbtn p" href="./">Ver todo el catálogo</a>';
       grid.parentNode.insertBefore(nr, grid.nextSibling);
     }
+  }
+
+  /**
+   * Ventana de números de página — espejo exacto de paginas() de index.php
+   * (MAX_PAG_LINKS = 7): ventana centrada + extremos con "…".
+   */
+  function paginasLocal(pag, pags, max) {
+    if (pags <= max) {
+      var todos = [];
+      for (var i = 1; i <= pags; i++) todos.push(i);
+      return todos;
+    }
+    var half = Math.floor(max / 2);
+    var start = Math.max(1, pag - half);
+    var end = Math.min(pags, start + max - 1);
+    start = Math.max(1, end - max + 1);
+    var out = [];
+    if (start > 1) { out.push(1); if (start > 2) out.push('…'); }
+    for (var p = start; p <= end; p++) out.push(p);
+    if (end < pags) { if (end < pags - 1) out.push('…'); out.push(pags); }
+    return out;
+  }
+
+  /**
+   * Repinta #pagesNav con los filtros ACTUALES (espejo del nav de index.php).
+   * Antes del fix los enlaces eran los del build, sin filtros: pulsar un
+   * número perdía la plataforma y mezclaba PS4/PS5.
+   */
+  function pintarPaginasLocal(f, r) {
+    var nav = $('#pagesNav');
+    if (!nav) return;
+    if (r.pags <= 1) { nav.hidden = true; nav.innerHTML = ''; return; }
+    nav.hidden = false;
+    var href = function (n) {
+      n.pag = n.pag || 1;
+      var qs = qsDe(n);
+      return './' + (qs ? '?' + qs : '');
+    };
+    var h = '';
+    if (r.pag > 1) {
+      var ant = clonFiltro(f); ant.pag = r.pag - 1;
+      h += '<a class="pg" href="' + esc(href(ant)) + '" aria-label="Página anterior">‹</a>';
+    }
+    paginasLocal(r.pag, r.pags, 7).forEach(function (p) {
+      if (p === '…') { h += '<span class="pg gap">…</span>'; return; }
+      if (p === r.pag) { h += '<span class="pg on" aria-current="page">' + p + '</span>'; return; }
+      var n = clonFiltro(f); n.pag = p;
+      h += '<a class="pg" href="' + esc(href(n)) + '">' + p + '</a>';
+    });
+    if (r.pag < r.pags) {
+      var sig = clonFiltro(f); sig.pag = r.pag + 1;
+      h += '<a class="pg" href="' + esc(href(sig)) + '" aria-label="Página siguiente">›</a>';
+    }
+    nav.innerHTML = h;
   }
 
   /** Aplica los filtros de la URL al catálogo renderizado por el build */
@@ -1196,6 +1248,7 @@
         btn.setAttribute('data-qs', qsDe(f));
         btn.hidden = r.pag >= r.pags;
       }
+      pintarPaginasLocal(f, r); // números con los filtros actuales (fix)
       pintarNoResLocal(r.total);
       refrescarFavDots();
       marcarVisitadas();

@@ -290,10 +290,33 @@ const MENCIONES_AJENAS = [
     '/\bzer0[\s._-]?dayz?\b/i',
 ];
 
+/**
+ * Nombres propios legítimos (títulos y estudios del catálogo) que contienen
+ * una palabra de MENCIONES_AJENAS. NO son menciones a las comunidades ajenas:
+ * se enmascaran antes de escanear para no dar falsos positivos. Si aparece
+ * un juego nuevo con una de estas palabras, el test lo señalará y se añade
+ * aquí tras revisarlo.
+ */
+const NOMBRES_PROPIOS_OK = [
+    'heavy spectrum entertainment labs', // estudio de Shadow of the Beast (CUSA03762)
+    'the spectrum retreat',               // juego de Dan Smith Studios (CUSA12242)
+];
+
+/** Enmascara los nombres propios legítimos (conserva la longitud: los offsets
+ *  del escáner siguen valiendo para mostrar el contexto). */
+function sin_nombres_propios(string $t): string
+{
+    foreach (NOMBRES_PROPIOS_OK as $n) {
+        $t = str_ireplace($n, str_repeat(' ', strlen($n)), $t);
+    }
+    return $t;
+}
+
 /** ¿Este texto contiene el nombre de una web ajena? */
 function hay_mencion_ajena(string $t): bool
 {
     if ($t === '') return false;
+    $t = sin_nombres_propios($t);
     foreach (MENCIONES_AJENAS as $p) {
         if (preg_match($p, $t)) return true;
     }
