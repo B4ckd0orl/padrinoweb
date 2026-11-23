@@ -1,0 +1,106 @@
+# ============================================================
+# Padrino Store Web — Apache hardening + PHP hardening
+# ============================================================
+
+# ---- Fase 1: métodos y tamaño ----
+# Solo GET/POST/HEAD (bloquea PUT/DELETE/OPTIONS/proxies de abuso)
+<LimitExcept GET POST HEAD>
+    Require all denied
+</LimitExcept>
+
+# Cuerpo máximo de petición (no hay uploads: 1 MB de red)
+LimitRequestBody 1048576
+
+# ---- Sin listado de directorios ----
+Options -Indexes
+
+# ---- Archivos ocultos y de backup ----
+<FilesMatch "^\.\|^\.htaccess$">
+    Require all denied
+</FilesMatch>
+
+# Nada de configs, logs, copias o fuentes abiertas
+<FilesMatch "\.(json|log|md|ini|bak|old|swp|sql|env|lock|dist|cfg|conf)$">
+    Require all denied
+</FilesMatch>
+
+# Bloquea acceso directo a /inc y /cache por URL (refuerzo de sus .htaccess)
+RedirectMatch 403 ^/(inc|cache|scripts)(/|$)
+
+# ---- Cabeceras de seguridad (refuerzo a las de PHP) ----
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    Header set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+    Header set Cross-Origin-Opener-Policy "same-origin"
+    Header set Cross-Origin-Resource-Policy "same-origin"
+    Header set X-Permitted-Cross-Domain-Policies "none"
+    Header set X-Robots-Tag "noindex, nofollow"
+    # Listo para cuando la web salga de local (localmente lo ignoran los navegadores)
+    Header always set Strict-Transport-Security "max-age=15552000; includeSubDomains"
+    Header unset X-Powered-By
+    Header unset Server
+    Header always set X-XSS-Protection "0"
+</IfModule>
+
+# ---- Fase 2: endurecimiento de PHP (mod_php) ----
+<IfModule mod_php.c>
+    php_flag display_errors Off
+    php_flag display_startup_errors Off
+    php_flag log_errors On
+    php_value error_log "C:/xampp/htdocs/padrinoweb/cache/logs/error.log"
+    php_value error_reporting "E_ALL & ~E_DEPRECATED & ~E_NOTICE"
+    php_value memory_limit "256M"
+    php_value max_execution_time "30"
+    php_value max_input_time "30"
+    php_value post_max_size "1M"
+    php_value upload_max_filesize "1M"
+    php_value default_charset "UTF-8"
+    # Solo se puede leer/escribir en la web y en los datos de la app (solo lectura)
+    php_value open_basedir "C:/xampp/htdocs/padrinoweb;C:/Users/Padrino/Desktop/PS5/storemia/padrino-store;C:/Windows/Temp;C:/xampp/php/tmp"
+    php_flag session.use_strict_mode On
+    php_flag session.use_only_cookies On
+    php_flag session.cookie_httponly On
+    php_value session.cookie_samesite "Lax"
+</IfModule>
+
+# ---- Sin scripts ejecutables donde no toca ----
+<FilesMatch "\.(tpl|sh|bat|ps1|git|yml|yaml|lock|log|bak)$">
+    Require all denied
+</FilesMatch>
+
+# ---- Compresión ----
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
+</IfModule>
+
+# ---- Caché de assets estáticos (CSS/JS se sirven versionados con ?v=filemtime) ----
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css              "access plus 1 day"
+    ExpiresByType application/javascript "access plus 1 day"
+    ExpiresByType image/png             "access plus 7 days"
+    ExpiresByType image/svg+xml         "access plus 7 days"
+    ExpiresByType image/x-icon          "access plus 7 days"
+</IfModule>
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js)$">
+        Header set Cache-Control "public, max-age=86400"
+    </FilesMatch>
+</IfModule>
+
+# ---- Ruta amigable por defecto ----
+DirectoryIndex index.php
+
+# ---- URLs amigables: /juego/CUSA12345 → juego.php?id=CUSA12345 ----
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # URL bonita de la ficha (canonical) — destino relativo: funciona
+    # tanto en la raíz del dominio como en un subdirectorio
+    RewriteRule ^juego/([A-Z]{4}[0-9]{5})/?$ juego.php?id=$1 [L,QSA]
+
+    # (el 301 desde la URL antigua juego.php?id= lo emite juego.php en PHP:
+    #  aquí un destino relativo se resolvía mal contra la raíz del disco)
+</IfModule>

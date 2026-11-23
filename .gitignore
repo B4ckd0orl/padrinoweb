@@ -1,0 +1,21 @@
+# Caché local: se regenera sola en cada build/arranque.
+# Excepciones que SÍ van al repo (las usa el build de GitHub Actions):
+#   - cache/covers/   covers propias de la web (24, ~0,7 MB)
+#   - cache/fuentes/externos.json  índice de fuentes externas
+#     (salida de scripts/sincronizar_enlaces.php; sin él, el build
+#      de Actions no tendría los enlaces externos)
+/cache/*
+!/cache/covers/
+!/cache/fuentes/
+/cache/fuentes/*
+!/cache/fuentes/externos.json
+
+# Salida del build estático: la genera y publica GitHub Actions
+# (scripts/estatico.php → .github/workflows/pages.yml)
+/dist/
+
+# Varios
+*.log
+*.tmp
+Thumbs.db
+.DS_Store

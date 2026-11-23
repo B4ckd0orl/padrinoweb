@@ -1,0 +1,2 @@
+# Directorio de utilidades: nunca se sirve por HTTP (solo CLI)
+Require all denied

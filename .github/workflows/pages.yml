@@ -1,0 +1,60 @@
+name: Build estático y publicación en GitHub Pages
+
+# Regenera dist/ con scripts/estatico.php y la publica.
+# El repo de datos (B4ckd0orl/Padrino-Store) se clona en SOLO LECTURA:
+# este workflow no lo modifica nunca.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '40 5 * * *'   # a diario: refleja los releases nuevos del repo de datos
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Clonar repo de datos (solo lectura)
+        run: git clone --depth 1 https://github.com/B4ckd0orl/Padrino-Store.git "$RUNNER_TEMP/padrino-store"
+
+      - name: Instalar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: intl, mbstring, json, curl
+          coverage: none
+
+      - name: Generar sitio estático
+        env:
+          PADRINO_STORE: ${{ runner.temp }}/padrino-store
+          PADRINO_BASE_PATH: /padrinoweb
+          PADRINO_BASE_URL: https://b4ckd0orl.github.io/padrinoweb
+        run: php scripts/estatico.php
+
+      - name: Subir artefacto de Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publicar en GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
