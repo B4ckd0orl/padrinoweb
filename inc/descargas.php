@@ -74,6 +74,8 @@ function host_url(string $u): string
 /** ¿Esta URL apunta a un host de archivo permitido? (niega mediafire y puentes) */
 function host_permitido(string $u): bool
 {
+    if (str_starts_with($u, 'magnet:?')) return true;
+    if (str_contains($u, '.torrent') || str_contains($u, 'f=torrent')) return true;
     $h = host_url($u);
     if ($h === '') return false;
     foreach (HOSTS_ARCHIVO as $d) {
@@ -85,6 +87,7 @@ function host_permitido(string $u): bool
 /** Prioridad de velocidad del host de una URL (50 = desconocido). */
 function prioridad_host(string $u): int
 {
+    if (str_starts_with($u, 'magnet:?') || str_contains($u, '.torrent')) return 1;
     $h = host_url($u);
     foreach (HOST_RAPIDO as $d => $r) {
         if ($h === $d || str_ends_with($h, '.' . $d)) return $r;
@@ -95,6 +98,8 @@ function prioridad_host(string $u): int
 /** Nombre de proveedor canónico de un host (coincide con los releases propios). */
 function provider_de_host(string $u): string
 {
+    if (str_starts_with($u, 'magnet:?')) return 'Magnet (P2P)';
+    if (str_contains($u, '.torrent')) return 'Torrent (P2P)';
     $h = host_url($u);
     $map = [
         'vikingfile.com' => 'VikingFile', 'vik1ngfile.site' => 'VikingFile',
@@ -396,10 +401,14 @@ function cargar_descargas(string $id, ?array $zstd = null): array
         if (!is_array($r)) continue;
         if (!empty($r['unavailableReason'])) continue;
         $url = (string)($r['url'] ?? '');
-        if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL)) continue;
-        $scheme = parse_url($url, PHP_URL_SCHEME);
-        if ($scheme !== 'https' && $scheme !== 'http') continue;
-        if (!host_permitido($url)) continue;
+        if ($url === '') continue;
+        $esP2P = str_starts_with($url, 'magnet:?') || str_contains($url, '.torrent') || str_contains($url, 'f=torrent');
+        if (!$esP2P) {
+            if (!filter_var($url, FILTER_VALIDATE_URL)) continue;
+            $scheme = parse_url($url, PHP_URL_SCHEME);
+            if ($scheme !== 'https' && $scheme !== 'http') continue;
+            if (!host_permitido($url)) continue;
+        }
         $ok[] = $r;
     }
     // primero por velocidad de host (vikingfile y compañía, como pidió el

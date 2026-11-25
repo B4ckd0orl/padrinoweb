@@ -58,6 +58,14 @@ switch ($f) {
         $name = 'logo.png';
         break;
     }
+    case 'torrent': {
+        $id = strtoupper((string)($_GET['id'] ?? ''));
+        if (!id_valido($id)) { http_response_code(400); exit('Bad id'); }
+        $path = CACHE_DIR . '/torrents/' . $id . '.torrent';
+        $type = 'application/x-bittorrent';
+        $name = $id . '.torrent';
+        break;
+    }
     default:
         http_response_code(400); exit('Bad request');
 }
@@ -73,7 +81,8 @@ header('ETag: ' . $etag);
 header('Content-Type: ' . $type);
 header('Content-Length: ' . $size);
 header('X-Content-Type-Options: nosniff');
-header('Content-Disposition: inline; filename="' . $name . '"');
+$disp = $f === 'torrent' ? 'attachment' : 'inline';
+header('Content-Disposition: ' . $disp . '; filename="' . $name . '"');
 
 if (($_SERVER['HTTP_IF_NONE_MATCH'] ?? '') === $etag) { http_response_code(304); exit; }
 

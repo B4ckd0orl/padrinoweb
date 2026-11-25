@@ -498,6 +498,10 @@ img.ph{object-fit:contain;padding:14%;opacity:.78}
 /* fila ZSTD (enlace de la comunidad) */
 .src.rowz{border-color:#c084fc66;background:linear-gradient(90deg,#c084fc14,var(--s2) 45%)}
 .src .dot.dz{background:#c084fc}
+/* fila Torrent / P2P */
+.src .tg.p2p{background:#38bdf826;color:#7dd3fc;border:1px solid #38bdf866;font-weight:800}
+.src.row-torrent{border-color:#38bdf866;background:linear-gradient(90deg,#38bdf814,var(--s2) 45%)}
+.src .dot.dtorrent{background:#38bdf8}
 .src .nt{display:block;font-size:12px;color:var(--muted);margin-top:5px;line-height:1.45}
 .src .go{
   flex-shrink:0;background:var(--acc);color:var(--ink);font-size:13.5px;font-weight:700;

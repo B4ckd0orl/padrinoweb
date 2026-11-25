@@ -6,6 +6,7 @@
 #      de Actions no tendría los enlaces externos)
 /cache/*
 !/cache/covers/
+!/cache/torrents/
 !/cache/fuentes/
 /cache/fuentes/*
 !/cache/fuentes/externos.json

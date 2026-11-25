@@ -84,6 +84,7 @@ function post_estatico(string $h, bool $esIndex): string
        bajo <base> de las fichas. */
     $h = str_replace(['href="index.html', 'action="index.html'], ['href="./', 'action="./'], $h);
     $h = str_replace('asset.php?f=logo', 'assets/logo.png', $h);
+    $h = (string)preg_replace('#asset\.php\?f=torrent(?:&amp;|&)id=([A-Za-z0-9]+)#', 'torrents/$1.torrent', $h);
     return $h;
 }
 
@@ -161,7 +162,12 @@ foreach (['jpg', 'jpeg', 'png', 'webp'] as $ext) {
         $nCov++;
     }
 }
-logln('· assets listos (covers propias: ' . $nCov . ')');
+$nTor = 0;
+foreach (glob(CACHE_DIR . '/torrents/*.torrent') ?: [] as $f) {
+    cp_arch($f, DIST . '/torrents/' . basename($f));
+    $nTor++;
+}
+logln('· assets listos (covers propias: ' . $nCov . ($nTor ? ', torrents: ' . $nTor : '') . ')');
 
 /* ============================================================
    5. datos/catalogo.json — espejo del payload de api/juegos.php
@@ -202,9 +208,11 @@ $nF = 0;
 foreach ($cat['games'] as $g) {
     $pay = detalle_payload($g['id'], $cat);
     if ($pay === null) continue;
+    $rawPay = json_encode($pay, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $rawPay = (string)preg_replace('#asset\.php\?f=torrent&amp;id=([A-Za-z0-9]+)|asset\.php\?f=torrent&id=([A-Za-z0-9]+)#', 'torrents/$1$2.torrent', $rawPay);
     file_put_contents(
         DIST . '/datos/fuentes/' . $g['id'] . '.json',
-        json_encode($pay, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+        $rawPay
     );
     $nF++;
     if ($nF % 1000 === 0) logln('  · fuentes: ' . $nF . '/' . $nGames);

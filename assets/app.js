@@ -775,24 +775,30 @@
     if (list) {
       list.innerHTML = srcs.map(function (s, i) {
         var esZ = !!s.zstd;
+        var esMag = (s.url || '').indexOf('magnet:') === 0;
+        var esTor = (s.url || '').indexOf('.torrent') > -1 || (s.url || '').indexOf('f=torrent') > -1;
+        var esP2P = esMag || esTor || (s.flow === 'torrent') || ((s.provider || '').toLowerCase().indexOf('torrent') > -1);
         var tags = [];
         var fmtTxt = (s.format || 'binario').toUpperCase();
         var esBin = (s.format || 'binario') === 'binario';
         tags.push('<span class="tg f' + (esZ ? ' zf' : '') + (esBin ? ' unk' : '') + '"' +
           (esBin ? ' title="El servidor no declara el formato del archivo"' : '') + '>FORMATO: ' + esc(fmtTxt) + '</span>');
-        if (s.flow) tags.push('<span class="tg">' + esc(s.flow) + '</span>');
+        if (esP2P) tags.push('<span class="tg p2p">P2P / TORRENT</span>');
+        if (s.flow && !esP2P) tags.push('<span class="tg">' + esc(s.flow) + '</span>');
         if (s.sizeGb != null) tags.push('<span class="tg">' + fmt(s.sizeGb) + ' GB</span>');
         if (s.health) tags.push('<span class="tg' + (s.health === 'ok' ? ' z' : '') + '">' + esc(s.health) + '</span>');
         if (esZ) tags.push('<span class="tg zs">ZSTD</span>');
         var label = s.label || s.provider || ('Fuente ' + (i + 1));
-        return '<div class="src' + (esZ ? ' rowz' : '') + '">' +
-          '<span class="dot' + (s.health && s.health !== 'ok' ? ' off' : '') + (esZ ? ' dz' : '') + '"></span>' +
+        var btnTxt = esMag ? '🧲 Magnet' : (esTor ? '⬇ .torrent' : 'Abrir');
+        var urlHost = esMag ? 'Magnet P2P' : dom(s.url);
+        return '<div class="src' + (esZ ? ' rowz' : '') + (esP2P ? ' row-torrent' : '') + '">' +
+          '<span class="dot' + (s.health && s.health !== 'ok' ? ' off' : '') + (esZ ? ' dz' : '') + (esP2P ? ' dtorrent' : '') + '"></span>' +
           '<span class="info"><span class="p">' + esc(label) + '</span>' +
-          (s.url ? '<span class="l">' + esc(dom(s.url)) + '</span>' : '') +
+          (s.url ? '<span class="l">' + esc(urlHost) + '</span>' : '') +
           (s.note ? '<span class="nt">' + esc(s.note) + '</span>' : '') +
           (tags.length ? '<span class="tags">' + tags.join('') + '</span>' : '') +
           '</span>' +
-          '<a class="go" href="' + esc(s.url) + '" target="_blank" rel="noopener noreferrer">Abrir</a>' +
+          '<a class="go" href="' + esc(s.url) + '"' + (esMag ? '' : ' target="_blank"') + ' rel="noopener noreferrer">' + btnTxt + '</a>' +
           '<button class="cp" data-copy-url="' + esc(s.url) + '" title="Copiar enlace">⧉</button>' +
           '</div>';
       }).join('');
