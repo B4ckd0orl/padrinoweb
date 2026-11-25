@@ -35,7 +35,7 @@ const MAX_FUENTES = 7;
      ajena a Padrino se refleja en la salida pública.
    ------------------------------------------------------------ */
 const HOSTS_ARCHIVO = [
-    'vikingfile.com', 'vik1ngfile.site',
+    'vikingfile.com', 'vik1ngfile.site', 'vik1ngf1le.online', 'vik1ngfile.online', 'vikingfile.online',
     'akirabox.com', 'akirabox.to',
     'datanodes.to', 'datanodes.co',
     'filekeeper.net', 'datavaults.co',
@@ -51,7 +51,7 @@ const HOSTS_ARCHIVO = [
 
 /** Orden por velocidad: cuanto menor, antes se ofrece al usuario. */
 const HOST_RAPIDO = [
-    'vikingfile.com' => 0, 'vik1ngfile.site' => 0,
+    'vikingfile.com' => 0, 'vik1ngfile.site' => 0, 'vik1ngf1le.online' => 0, 'vik1ngfile.online' => 0, 'vikingfile.online' => 0,
     'akirabox.com' => 1, 'akirabox.to' => 1,
     'datanodes.to' => 2, 'datanodes.co' => 2,
     'filekeeper.net' => 3, 'datavaults.co' => 4,
@@ -103,6 +103,7 @@ function provider_de_host(string $u): string
     $h = host_url($u);
     $map = [
         'vikingfile.com' => 'VikingFile', 'vik1ngfile.site' => 'VikingFile',
+        'vik1ngf1le.online' => 'VikingFile', 'vik1ngfile.online' => 'VikingFile', 'vikingfile.online' => 'VikingFile',
         'akirabox.com' => 'AkiraBox', 'akirabox.to' => 'AkiraBox',
         'datanodes.to' => 'DataNodes', 'datanodes.co' => 'DataNodes',
         'rootz.so' => 'Rootz', 'buzzheavier.com' => 'Buzzheavier',
